@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fake News Detector</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    #searchInput, #sortSelect, #subjectSelect {
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      margin-right: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      margin-right: 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .article {
+      background: white;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-left: 6px solid gray;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .fake { border-color: red; }
+    .real { border-color: green; }
+
+    .label {
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .fake .label { color: red; }
+    .real .label { color: green; }
+
+    .highlight {
+      background-color: yellow;
+    }
+
+    #stats {
+      margin: 15px 0;
+      font-weight: bold;
+    }
+
+    .body-content {
+      display: none;
+      margin-top: 10px;
+      white-space: pre-wrap;
+    }
+
+    .toggle-button {
+      color: #007BFF;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 14px;
+      margin-top: 5px;
+      display: inline-block;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>📰 Fake News Detector</h1>
+
+  <input type="text" id="searchInput" placeholder="🔍 Search headlines...">
+
+  <button onclick="filterByLabel('all')">Show All</button>
+  <button onclick="filterByLabel('fake')" style="background:red;color:white;">Fake Only</button>
+  <button onclick="filterByLabel('real')" style="background:green;color:white;">Real Only</button>
+
+  <select id="sortSelect">
+    <option value="">Sort by Date</option>
+    <option value="asc">Oldest First</option>
+    <option value="desc">Newest First</option>
+  </select>
+
+  <select id="subjectSelect">
+    <option value="">All Subjects</option>
+  </select>
+
+  <div id="stats"></div>
+  <div id="articles"></div>
+
+  <script>
+    let allArticles = [];
+    let filteredArticles = [];
+    let currentLabel = 'all';
+
+    function highlight(text, term) {
+      if (!term) return text;
+      const regex = new RegExp(`(${term})`, 'gi');
+      return text.replace(regex, '<span class="highlight">$1</span>');
+    }
+
+    function updateStats(count) {
+      const fakeCount = filteredArticles.filter(a => a.label.toLowerCase() === 'fake').length;
+      const realCount = filteredArticles.filter(a => a.label.toLowerCase() === 'real').length;
+      document.getElementById('stats').innerText = `Showing ${count} articles | Fake: ${fakeCount}, Real: ${realCount}`;
+    }
+
+    function renderArticles(articles, query = '') {
+      const container = document.getElementById('articles');
+      container.innerHTML = '';
+      articles.forEach((article, index) => {
+        const div = document.createElement('div');
+        div.className = 'article ' + article.label.toLowerCase();
+
+        const uniqueId = `body-${index}`;
+
+        div.innerHTML = `
+          <h2>${highlight(article.headline, query)}</h2>
+          <p><strong>Subject:</strong> ${article.subject || 'N/A'}</p>
+          <p><strong>Date:</strong> ${article.date || 'Unknown'}</p>
+          <p><span class="label">${article.label}</span></p>
+          <span class="toggle-button" onclick="toggleBody('${uniqueId}')">Read Full Article</span>
+          <div class="body-content" id="${uniqueId}">${article.body}</div>
+        `;
+        container.appendChild(div);
+      });
+      updateStats(articles.length);
+    }
+
+    function toggleBody(id) {
+      const el = document.getElementById(id);
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function filterByLabel(label) {
+      currentLabel = label;
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const subject = document.getElementById('subjectSelect').value;
+      const sort = document.getElementById('sortSelect').value;
+
+      filteredArticles = allArticles.filter(article => {
+        const matchesLabel = currentLabel === 'all' || article.label.toLowerCase() === currentLabel;
+        const matchesSearch = article.headline.toLowerCase().includes(query);
+        const matchesSubject = !subject || article.subject === subject;
+        return matchesLabel && matchesSearch && matchesSubject;
+      });
+
+      if (sort === 'asc') {
+        filteredArticles.sort((a, b) => new Date(a.date) - new Date(b.date));
+      } else if (sort === 'desc') {
+        filteredArticles.sort((a, b) => new Date(b.date) - new Date(a.date));
+      }
+
+      renderArticles(filteredArticles, query);
+    }
+
+    fetch('articles_sample.json')
+      .then(response => response.json())
+      .then(data => {
+        allArticles = data;
+        const subjects = [...new Set(allArticles.map(a => a.subject).filter(Boolean))];
+        const subjectSelect = document.getElementById('subjectSelect');
+        subjects.forEach(subject => {
+          const opt = document.createElement('option');
+          opt.value = subject;
+          opt.innerText = subject;
+          subjectSelect.appendChild(opt);
+        });
+        filteredArticles = allArticles;
+        renderArticles(filteredArticles);
+
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('sortSelect').addEventListener('change', applyFilters);
+        document.getElementById('subjectSelect').addEventListener('change', applyFilters);
+      })
+      .catch(error => {
+        console.error("❌ Error loading articles:", error);
+      });
+  </script>
+
+</body>
+</html>

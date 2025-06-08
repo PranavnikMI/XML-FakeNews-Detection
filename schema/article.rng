@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns="http://relaxng.org/ns/structure/1.0"
+         datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <start>
+    <element name="articles">
+      <zeroOrMore>
+        <element name="article">
+          
+          <element name="headline">
+            <text/>
+          </element>
+
+          <element name="body">
+            <text/>
+          </element>
+
+          <element name="label">
+            <choice>
+              <value>fake</value>
+              <value>real</value>
+            </choice>
+          </element>
+
+          <element name="subject">
+            <text/>
+          </element>
+
+          <element name="date">
+            <choice>
+              <data type="date"/>
+              <value>unknown</value>
+            </choice>
+          </element>
+
+        </element>
+      </zeroOrMore>
+    </element>
+  </start>
+
+</grammar>
